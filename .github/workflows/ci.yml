@@ -70,8 +70,10 @@ jobs:
       # FIX 4: Use Vercel's standard deployment commands
       - name: Deploy to Production
         run: |
-          # The 'vercel' command automatically uses the VERCEL_TOKEN environment variable
-          # Pull configuration, build, and deploy to production
-          vercel pull --yes --environment=production
-          vercel build --prod
-          vercel deploy --prebuilt --prod
+          # The VERCEL_TOKEN secret is accessed via the env: block defined above
+          TOKEN=${{ secrets.VERCEL_TOKEN }}
+
+          # Use the --token flag for all critical Vercel commands
+          vercel pull --yes --environment=production --token $TOKEN
+          vercel build --prod --token $TOKEN
+          vercel deploy --prebuilt --prod --token $TOKEN
