@@ -11,20 +11,20 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        node-version: [16.x, 18.x]
+        node-version: [24.x, 25.x]
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup Node.js ${{ matrix.node-version }}
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node-version }}
           cache: "yarn"
 
       - name: Install dependencies
-        run: yarn install --frozen-lockfile # Use --frozen-lockfile for CI
+        run: yarn install --frozen-lockfile
 
       - name: Lint code
         run: yarn lint
@@ -32,11 +32,22 @@ jobs:
       - name: Run tests
         run: yarn test
 
-      - name: Run tests (with coverage)
-        run: yarn test
+      - name: Run coverage
+        run: yarn coverage
 
-      - name: Upload coverage report
+      - name: Upload coverage artifact
         uses: actions/upload-artifact@v4
         with:
-          name: coverage-report-${{ matrix.node-version }}
-          path: coverage/
+          name: coverage-report
+          path: coverage
+          overwrite: true
+
+  deploy:
+    needs: build-and-test
+    runs-on: ubuntu-latest
+    if: ${{ github.ref == 'refs/heads/main' }}
+    steps:
+      - name: Trigger Render Deploy
+        run: curl -X POST "$RENDER_HOOK_URL"
+        env:
+          RENDER_HOOK_URL: ${{ secrets.RENDER_HOOK_URL }}
