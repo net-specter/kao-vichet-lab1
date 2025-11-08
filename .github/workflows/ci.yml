@@ -31,7 +31,7 @@ jobs:
       - name: Lint code
         run: yarn lint
 
-      # FIX 2: Combine test and coverage steps if 'yarn coverage' is defined
+      # FIX 2: Combine test and coverage steps if 'yarn coverage' is defined in package.json
       # If 'yarn coverage' runs nyc, then we only need this step.
       - name: Run tests and generate coverage
         run: yarn coverage # Assuming 'coverage' runs 'nyc mocha --exit'
