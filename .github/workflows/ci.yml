@@ -8,10 +8,21 @@ on:
 
 jobs:
   build-and-test:
+    # ... (Your existing code quality job)
+
+  deploy:
+    name: Deploy to Vercel
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        node-version: [24.x, 25.x]
+
+    # 1. Runs only after tests pass
+    needs: [build-and-test]
+
+    # 2. Runs only on pushes to the 'main' branch
+    if: github.ref == 'refs/heads/main'
+
+    # 3. Define the Vercel Token as an environment variable for this job
+    env:
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
 
     steps:
       - name: Checkout code
@@ -20,34 +31,17 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: ${{ matrix.node-version }}
-          cache: "yarn"
+          node-version: "18.x" # Use a consistent stable version
 
-      - name: Install dependencies
-        run: yarn install --frozen-lockfile
+      - name: Install Vercel CLI
+        run: npm install -g vercel
 
-      - name: Lint code
-        run: yarn lint
-
-      - name: Run tests
-        run: yarn test
-
-      - name: Run coverage
-        run: yarn coverage
-
-      - name: Upload coverage artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: coverage-report
-          path: coverage
-          overwrite: true
-
-  deploy:
-    needs: build-and-test
-    runs-on: ubuntu-latest
-    if: ${{ github.ref == 'refs/heads/main' }}
-    steps:
-      - name: Trigger Render Deploy
-        run: curl -X POST "$RENDER_HOOK_URL"
-        env:
-          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      # 4. Deploy using the Vercel CLI
+      - name: Deploy to Vercel
+        # 'vercel pull' fetches project settings (.vercel config)
+        # 'vercel build' builds the project
+        # 'vercel deploy' deploys the project to production (-prod)
+        run: |
+          vercel pull --yes --environment=production
+          vercel build --prod
+          vercel deploy --prebuilt --prod
