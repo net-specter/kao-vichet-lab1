@@ -8,19 +8,49 @@ on:
 
 jobs:
   build-and-test:
-    # ... (Your existing code quality job)
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        # FIX 1: Use supported, LTS Node versions (24.x and 25.x are bleeding edge)
+        # Use 18.x and 20.x, or 20.x and 22.x
+        node-version: [18.x, 20.x]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: "yarn"
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: Lint code
+        run: yarn lint
+
+      # FIX 2: Combine test and coverage steps if 'yarn coverage' is defined
+      # If 'yarn coverage' runs nyc, then we only need this step.
+      - name: Run tests and generate coverage
+        run: yarn coverage # Assuming 'coverage' runs 'nyc mocha --exit'
+
+      - name: Upload coverage artifact
+        uses: actions/upload-artifact@v4
+        with:
+          # Use matrix variable to ensure unique artifact names for each Node version
+          name: coverage-report-${{ matrix.node-version }}
+          path: coverage/
+          # overwrite: true is default for v4 and not strictly necessary here
 
   deploy:
     name: Deploy to Vercel
+    needs: build-and-test
     runs-on: ubuntu-latest
+    if: ${{ github.ref == 'refs/heads/main' }}
 
-    # 1. Runs only after tests pass
-    needs: [build-and-test]
-
-    # 2. Runs only on pushes to the 'main' branch
-    if: github.ref == 'refs/heads/main'
-
-    # 3. Define the Vercel Token as an environment variable for this job
+    # FIX 3: Set VERCEL_TOKEN as an environment variable for the ENTIRE job
     env:
       VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
 
@@ -28,20 +58,20 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
+      # Setup Node.js is required for the deployment job too
+      - name: Setup Node.js for Deployment
         uses: actions/setup-node@v4
         with:
-          node-version: "18.x" # Use a consistent stable version
+          node-version: "18.x"
 
-      - name: Install Vercel CLI
+      - name: Install Vercel CLI globally
         run: npm install -g vercel
 
-      # 4. Deploy using the Vercel CLI
-      - name: Deploy to Vercel
-        # 'vercel pull' fetches project settings (.vercel config)
-        # 'vercel build' builds the project
-        # 'vercel deploy' deploys the project to production (-prod)
+      # FIX 4: Use Vercel's standard deployment commands
+      - name: Deploy to Production
         run: |
+          # The 'vercel' command automatically uses the VERCEL_TOKEN environment variable
+          # Pull configuration, build, and deploy to production
           vercel pull --yes --environment=production
           vercel build --prod
           vercel deploy --prebuilt --prod
