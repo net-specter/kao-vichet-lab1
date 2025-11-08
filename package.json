@@ -4,11 +4,11 @@
   },
   "devDependencies": {
     "@eslint/eslintrc": "2",
-    "chai": "^6.2.0",
+    "chai": "4.3.10",
     "eslint": "8",
-    "mocha": "^11.7.4",
+    "mocha": "10.4.0",
     "nyc": "^17.1.0",
-    "supertest": "^7.1.4"
+    "supertest": "6.3.4"
   },
   "scripts": {
     "start": "node server.js",
